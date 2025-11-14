@@ -1,0 +1,29 @@
+# Environment
+.env
+config/.env
+venv/
+env/
+*.pyc
+__pycache__/
+
+# Data files (don't commit large files)
+data/
+*.json
+*.csv
+
+# Logs
+logs/
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Snowflake
+*.key
+*.pem
