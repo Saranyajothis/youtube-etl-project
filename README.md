@@ -1,4 +1,5 @@
 YouTube Content Sentiment Analysis ETL Pipeline
+
 📊 Project Overview
 An end-to-end ETL (Extract, Transform, Load) pipeline that collects YouTube video data from multiple regions, classifies content sentiment using category and keyword analysis, and provides insights into regional content patterns. The pipeline answers the key question: "Which regions produce more positive content?"
 Key Features
@@ -10,6 +11,7 @@ Key Features
 🔐 Secure Credential Management using Azure Key Vault for API keys and passwords
 📈 Scalable Design collecting ~250 videos daily
 🔄 Daily Refresh capability using Azure Functions for scheduled triggers
+
 
 🏗️ Architecture
 ┌─────────────┐    ┌──────────────┐    ┌─────────────┐    ┌────────────┐
@@ -289,3 +291,4 @@ GROUP BY final_sentiment;
 ✅ Python Development - Modular, production-ready code
 ✅ DevOps - Environment management and deployment
 ✅ Azure Functions - Server
+
