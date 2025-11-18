@@ -1,0 +1,23 @@
+# Uncomment to enable Azure Monitor OpenTelemetry
+# Ref: aka.ms/functions-azure-monitor-python 
+# azure-monitor-opentelemetry 
+
+# Azure Functions
+azure-functions
+# Your existing dependencies
+google-api-python-client==2.108.0
+google-auth==2.25.0
+azure-storage-blob==12.19.0
+snowflake-connector-python==3.6.0
+python-dotenv==1.0.0
+# Additional for Azure Functions
+azure-identity==1.15.0
+azure-keyvault-secrets==4.7.0
+
+
+azure-identity
+azure-keyvault-secrets
+python-dotenv
+google-api-python-client
+azure-storage-blob
+oauth2client==3.0.0
