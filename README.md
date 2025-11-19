@@ -188,3 +188,7 @@ VIDEOS_PER_KEYWORD = 10
 REGIONS = ['US', 'IN', 'GB', 'PK', 'DE', 'FR']
 ```
 
+<img width="726" height="674" alt="Screenshot 2025-11-18 at 6 19 39 PM" src="https://github.com/user-attachments/assets/2de1956c-dcee-42a2-9324-4c4c5dc98b9a" />
+
+
+
