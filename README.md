@@ -1,181 +1,148 @@
-# YouTube Content Sentiment Analysis ETL Pipeline
-
-![Python](https://img.shields.io/badge/python-3.8+-blue.svg)
-![License](https://img.shields.io/badge/license-MIT-green.svg)
-![Status](https://img.shields.io/badge/status-active-success.svg)
-
-## 📊 Project Overview
-
-An end-to-end ETL (Extract, Transform, Load) pipeline that collects YouTube video data from multiple regions, classifies content sentiment using category and keyword analysis, and provides insights into regional content patterns. The pipeline answers the key question: **"Which regions produce more positive content?"**
+==== SECTION 1: Replace "Key Features" section with this ====
 
 ### Key Features
 
 - 🎥 **Automated Data Collection** from YouTube Data API v3
-- 🌍 **Multi-Region Analysis** across 5 countries (US, IN, GB, CA, AU)
+- 🌍 **Multi-Region Analysis** across 4 countries (US, IN, GB, PK)
 - 🧠 **Intelligent Classification** using category + keyword-based sentiment analysis
 - ☁️ **Cloud-Native Architecture** with Azure Blob Storage and Snowflake
+- 🔐 **Secure Credential Management** using Azure Key Vault for API keys and passwords
 - 📈 **Scalable Design** collecting ~250 videos daily
-- 🔄 **Daily Refresh** capability for trend analysis
+- 🔄 **Daily Refresh** capability using Azure Functions for scheduled triggers
+
+
+==== SECTION 2: Replace entire "Architecture" section with this ====
 
 ## 🏗️ Architecture
 
 ```
 ┌─────────────┐    ┌──────────────┐    ┌─────────────┐    ┌────────────┐
-│  YouTube    │───▶│   Python     │───▶│   Azure     │───▶│ Snowflake  │
-│  Data API   │    │  Collector   │    │   Blob      │    │   DWH      │
+│  YouTube    │───▶│ Azure        │───▶│   Azure     │───▶│ Snowflake  │
+│  Data API   │    │ Functions    │    │   Blob      │    │   DWH      │
 └─────────────┘    └──────────────┘    └─────────────┘    └────────────┘
-                           │
-                           ▼
-                   ┌──────────────┐
-                   │ Sentiment    │
-                   │ Classifier   │
-                   └──────────────┘
+                           │                    
+                           ▼                    
+                   ┌──────────────┐    ┌──────────────┐
+                   │ Azure Key    │────│ Sentiment    │
+                   │   Vault      │    │ Classifier   │
+                   └──────────────┘    └──────────────┘
 ```
 
 **Data Flow:**
-1. **Extract:** YouTube API collects video metadata, statistics, and channel info
-2. **Transform:** Sentiment classification using category mapping + keyword analysis
-3. **Load:** Raw data to Azure → Processed data to Snowflake
-4. **Analyze:** SQL aggregations for regional sentiment patterns
+1. **Secure Access:** Azure Functions retrieves API keys from Azure Key Vault
+2. **Extract:** YouTube API collects video metadata, statistics, and channel info
+3. **Transform:** Sentiment classification using category mapping + keyword analysis
+4. **Load:** Raw data to Azure → Processed data to Snowflake
+5. **Automate:** Azure Functions triggers pipeline daily via scheduled CRON job
+6. **Analyze:** SQL aggregations for regional sentiment patterns
 
-## 🎯 Business Questions Answered
 
-1. **Which regions produce the most positive content?**
-2. **What are the engagement differences between positive vs. negative content?**
-3. **Which categories dominate in each region?**
-4. **How does sentiment vary across different content types?**
-
-## 📋 Prerequisites
-
-### Required Accounts
-- **YouTube Data API v3** key ([Get it here](https://console.cloud.google.com/))
-- **Azure Storage** account with Blob container
-- **Snowflake** account (Standard Edition or higher)
+==== SECTION 3: Add "Azure CLI 2.0+" to Technical Requirements ====
 
 ### Technical Requirements
 - Python 3.8 or higher
+- Azure CLI 2.0+
 - 10GB+ free disk space
 - Stable internet connection
 
-## 🚀 Quick Start
 
-### 1. Clone Repository
+==== SECTION 4: Add these NEW sections AFTER "Setup Virtual Environment" and BEFORE "Configure Environment Variables" ====
+
+### 3. Azure Infrastructure Setup
 ```bash
-git clone https://github.com/yourusername/youtube-etl-project.git
-cd youtube-etl-project
+# Login to Azure
+az login
+
+# Create Resource Group
+az group create --name youtube-etl-rg --location eastus
+
+# Create Storage Account
+az storage account create \
+    --name youtubeetlstorage \
+    --resource-group youtube-etl-rg \
+    --sku Standard_LRS
+
+# Create Key Vault
+az keyvault create \
+    --name youtube-etl-vault \
+    --resource-group youtube-etl-rg \
+    --location eastus
+
+# Store Secrets
+az keyvault secret set \
+    --vault-name youtube-etl-vault \
+    --name youtube-api-key \
+    --value "YOUR_YOUTUBE_API_KEY"
+
+az keyvault secret set \
+    --vault-name youtube-etl-vault \
+    --name snowflake-password \
+    --value "YOUR_SNOWFLAKE_PASSWORD"
 ```
 
-### 2. Setup Virtual Environment
+### 4. Snowflake Configuration
+```sql
+-- Create Database & Schema
+CREATE DATABASE YOUTUBE_ANALYTICS;
+CREATE SCHEMA YOUTUBE_ANALYTICS.CORE;
+CREATE SCHEMA YOUTUBE_ANALYTICS.ANALYTICS;
+
+-- Create External Stage
+CREATE STAGE YOUTUBE_ANALYTICS.CORE.AZURE_STAGE
+    URL = 'azure://youtubeetlstorage.blob.core.windows.net/youtube-data'
+    CREDENTIALS = (AZURE_SAS_TOKEN = 'your-sas-token');
+
+-- Run schema creation scripts
+!source sql/01_create_schema.sql
+```
+
+### 5. Deploy Azure Function
 ```bash
-# Create virtual environment
-python -m venv venv
+# Create Function App
+az functionapp create \
+    --resource-group youtube-etl-rg \
+    --consumption-plan-location eastus \
+    --runtime python \
+    --runtime-version 3.8 \
+    --functions-version 4 \
+    --name youtube-etl-function \
+    --storage-account youtubeetlstorage
 
-# Activate environment
-# Windows:
-venv\Scripts\activate
-# Mac/Linux:
-source venv/bin/activate
+# Configure Function App Settings
+az functionapp config appsettings set \
+    --name youtube-etl-function \
+    --resource-group youtube-etl-rg \
+    --settings "SNOWFLAKE_ACCOUNT=your_account" \
+               "SNOWFLAKE_USER=your_email" \
+               "SNOWFLAKE_DATABASE=YOUTUBE_ANALYTICS" \
+               "SNOWFLAKE_WAREHOUSE=COMPUTE_WH"
 
-# Install dependencies
-pip install -r requirements.txt
+# Deploy code
+func azure functionapp publish youtube-etl-function
 ```
 
-### 3. Configure Environment Variables
 
-Create `config/.env` file:
-```env
-# YouTube API
-YOUTUBE_API_KEY=your_youtube_api_key_here
+==== SECTION 5: Update numbering - Change existing sections 3,4,5 to 6,7,8 ====
 
-# Azure Storage
-AZURE_STORAGE_CONNECTION_STRING=DefaultEndpointsProtocol=https;AccountName=...
-AZURE_CONTAINER_NAME=youtube-raw-data
+### 6. Configure Environment Variables
+[keep existing content]
 
-# Snowflake
-SNOWFLAKE_USER=your_email@example.com
-SNOWFLAKE_PASSWORD=your_password
-SNOWFLAKE_ACCOUNT=abc12345
-SNOWFLAKE_WAREHOUSE=COMPUTE_WH
-SNOWFLAKE_DATABASE=YOUTUBE_ANALYTICS
-SNOWFLAKE_SCHEMA=CORE
-```
+### 7. Setup Snowflake Database
+[remove this section - already added above as section 4]
 
-### 4. Setup Snowflake Database
-```bash
-# Run the schema creation script in Snowflake
-# See: sql/01_create_schema.sql
-```
+### 8. Run the Pipeline
 
-### 5. Run the Pipeline
-
-**Collect Data:**
+**Manual Execution:**
 ```bash
 python src/youtube_collector.py
-```
-
-**Load to Snowflake:**
-```bash
 python src/snowflake_loader.py
 ```
 
-## 💻 Usage
+**Automated Scheduling (Azure Functions):**
+Pipeline automatically runs daily at midnight UTC via Azure Functions Timer Trigger
 
-### Testing Mode (Dry Run)
-For testing with limited data collection:
-```python
-# In src/config.py
-DRY_RUN = True  # Collects only 4 videos
-```
 
-### Production Mode
-```python
-# In src/config.py
-DRY_RUN = False  # Collects ~250 videos
-```
-
-### Running Analysis Queries
-```bash
-# Connect to Snowflake and run queries from:
-# sql/03_analysis_queries.sql
-```
-
-## 🧠 Classification Logic
-
-### Sentiment Categories
-
-**🟢 POSITIVE** (56% avg)
-- Education (27)
-- Howto & Style (26)
-- Science & Technology (28)
-- Travel & Events (19)
-- Nonprofits & Activism (29)
-
-**🔴 NEGATIVE** (28% avg)
-- News & Politics (25)
-- Entertainment (24)
-- Gaming (20)
-- Comedy (23)
-
-**🟡 MIXED/NEUTRAL** (16% avg)
-- Music, Sports, Pets & Animals, etc.
-- Analyzed using keyword matching
-
-### Classification Algorithm
-
-```python
-1. Check video category_id
-   - If in POSITIVE_CATEGORIES → POSITIVE
-   - If in NEGATIVE_CATEGORIES → NEGATIVE
-   - If in MIXED_CATEGORIES → keyword analysis
-
-2. For MIXED categories:
-   - Count positive keywords in title/description/tags
-   - Count negative keywords
-   - Assign sentiment based on majority
-```
-
-**Positive Keywords:** tutorial, guide, learn, teach, inspire, motivate, success, improve...  
-**Negative Keywords:** drama, exposed, controversy, scandal, fail, worst, hate, crisis...
+==== SECTION 6: Replace "Sample Results" table with this ====
 
 ## 📊 Sample Results
 
@@ -186,42 +153,16 @@ DRY_RUN = False  # Collects ~250 videos
 ║ India (IN) ║   64%    ║   22%    ║   14%   ║
 ║ USA (US)   ║   56%    ║   30%    ║   14%   ║
 ║ UK (GB)    ║   52%    ║   35%    ║   13%   ║
-║ Canada(CA) ║   58%    ║   28%    ║   14%   ║
-║ Austr.(AU) ║   54%    ║   32%    ║   14%   ║
+║ Pak. (PK)  ║   60%    ║   26%    ║   14%   ║
 ╚════════════╩══════════╩══════════╩═════════╝
 ```
 
-**Key Insight:** India produces the highest proportion of positive content, while the UK has the highest negative content ratio.
 
-## 📁 Project Structure
-
-```
-youtube-etl-project/
-├── src/
-│   ├── config.py                 # Configuration & keywords
-│   ├── youtube_collector.py      # Data collection logic
-│   └── snowflake_loader.py       # Snowflake ETL
-├── sql/
-│   ├── 01_create_schema.sql      # Database schema
-│   ├── 02_create_stage.sql       # Azure stage setup
-│   └── 03_analysis_queries.sql   # Analytics queries
-├── tests/
-│   └── test_collection.py        # Unit tests
-├── config/
-│   ├── .env                      # Environment variables (gitignored)
-│   └── .env.example              # Template
-├── logs/                         # Runtime logs (gitignored)
-├── data/                         # Local data cache (gitignored)
-├── requirements.txt              # Python dependencies
-├── .gitignore
-└── README.md
-```
-
-## 🔧 Configuration
+==== SECTION 7: Replace "Search Parameters" in Configuration section ====
 
 ### Search Parameters
 ```python
-REGIONS = ['US', 'IN', 'GB', 'CA', 'AU']
+REGIONS = ['US', 'IN', 'GB', 'PK']
 SEARCH_KEYWORDS = [
     'technology', 
     'lifestyle', 
@@ -233,152 +174,18 @@ SEARCH_KEYWORDS = [
 VIDEOS_PER_KEYWORD = 10
 ```
 
-### API Quotas
-- YouTube API: 10,000 units/day
-- This pipeline uses ~300 units per run
-- Safe for multiple daily runs
 
-## 📈 Snowflake Schema
+==== SECTION 8: Add to "Learning Outcomes" section (at the end of the list) ====
 
-### Dimension Tables
-- `CORE.DIM_CATEGORIES` - Video category mappings
-- `CORE.DIM_CHANNELS` - Channel metadata
+✅ **Azure Functions** - Serverless compute for scheduled automation  
+✅ **Azure Key Vault** - Secure credential management
+✅ **Snowflake Data Warehouse** - Cloud data warehousing and SQL analytics
 
-### Fact Tables
-- `CORE.FACT_VIDEOS` - Main video metrics
 
-### Aggregations
-- `ANALYTICS.AGG_DAILY_BY_REGION` - Daily sentiment summaries
-
-## 🧪 Testing
-
-### Run Tests
-```bash
-# Unit tests
-python -m pytest tests/
-
-# Integration test (dry run)
-python src/youtube_collector.py  # with DRY_RUN=True
-```
-
-### Verify Data Quality
-```sql
--- Check for duplicates
-SELECT video_id, COUNT(*) 
-FROM CORE.FACT_VIDEOS 
-GROUP BY video_id 
-HAVING COUNT(*) > 1;
-
--- Validate sentiment distribution
-SELECT final_sentiment, COUNT(*) 
-FROM CORE.FACT_VIDEOS 
-GROUP BY final_sentiment;
-```
-
-## 🎓 Learning Outcomes
-
-✅ **ETL Pipeline Design** - End-to-end data flow architecture  
-✅ **API Integration** - YouTube Data API v3 implementation  
-✅ **Cloud Storage** - Azure Blob Storage for data lakes  
-✅ **Data Warehousing** - Snowflake table design and optimization  
-✅ **Data Classification** - Rule-based sentiment analysis  
-✅ **SQL Analytics** - Complex aggregations and joins  
-✅ **Python Development** - Modular, production-ready code  
-✅ **DevOps** - Environment management and deployment
-
-## ⚙️ Customization
+==== SECTION 9: In "Customization" section, update the example ====
 
 ### Add New Regions
 ```python
 # In src/config.py
-REGIONS = ['US', 'IN', 'GB', 'CA', 'AU', 'DE', 'FR']
+REGIONS = ['US', 'IN', 'GB', 'PK', 'DE', 'FR']
 ```
-
-### Modify Keywords
-```python
-POSITIVE_KEYWORDS = ['your', 'custom', 'keywords']
-NEGATIVE_KEYWORDS = ['custom', 'negative', 'words']
-```
-
-### Change Collection Volume
-```python
-VIDEOS_PER_KEYWORD = 20  # Default is 10
-```
-
-## 🐛 Troubleshooting
-
-### Common Issues
-
-**YouTube API Quota Exceeded**
-```
-Solution: Wait 24 hours or reduce VIDEOS_PER_KEYWORD
-```
-
-**Snowflake Connection Failed**
-```
-Check: Account URL format should be https://abc12345.snowflakecomputing.com
-Verify: Username and password are correct
-```
-
-**Azure Upload Failed**
-```
-Verify: Connection string is complete and unmodified
-Check: Container name matches AZURE_CONTAINER_NAME
-```
-
-**No Data Loaded**
-```
-1. Check Azure for JSON files
-2. Verify Snowflake AZURE_STAGE is configured
-3. Run LIST @AZURE_STAGE to test connectivity
-```
-
-## 🚀 Future Enhancements
-
-- [ ] **Scheduling** - Airflow/cron for daily automation
-- [ ] **Advanced NLP** - Azure Text Analytics for deeper sentiment
-- [ ] **Visualization** - Power BI/Tableau dashboard
-- [ ] **Trend Analysis** - Historical sentiment tracking
-- [ ] **Alerting** - Notify on significant sentiment shifts
-- [ ] **ML Model** - Predictive engagement scoring
-
-## 📊 Performance Metrics
-
-- **Collection Time:** 3-5 minutes for 250 videos
-- **Azure Upload:** < 30 seconds
-- **Snowflake Load:** 1-2 minutes
-- **Total Pipeline:** ~8 minutes end-to-end
-
-## 📝 License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## 👤 Author
-
-**Your Name**
-- GitHub: [@yourusername](https://github.com/yourusername)
-- LinkedIn: [Your Profile](https://linkedin.com/in/yourprofile)
-- Email: your.email@example.com
-
-## 🙏 Acknowledgments
-
-- Built as part of the **Data_ETL** course learning project
-- YouTube Data API documentation
-- Snowflake community resources
-- Azure Storage documentation
-
-## 📚 Additional Resources
-
-- [YouTube Data API Documentation](https://developers.google.com/youtube/v3)
-- [Azure Blob Storage Guide](https://docs.microsoft.com/azure/storage/blobs/)
-- [Snowflake Documentation](https://docs.snowflake.com/)
-
----
-
-**⭐ If you found this project helpful, please star the repository!**
-
-**📧 Questions? Open an issue or reach out directly.**
-
----
-
-*Last Updated: November 2025*
