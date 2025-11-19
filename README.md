@@ -1,5 +1,3 @@
-==== SECTION 1: Replace "Key Features" section with this ====
-
 ### Key Features
 
 - 🎥 **Automated Data Collection** from YouTube Data API v3
@@ -189,3 +187,4 @@ VIDEOS_PER_KEYWORD = 10
 # In src/config.py
 REGIONS = ['US', 'IN', 'GB', 'PK', 'DE', 'FR']
 ```
+
